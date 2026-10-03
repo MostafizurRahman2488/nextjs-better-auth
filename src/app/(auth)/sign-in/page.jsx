@@ -1,43 +1,84 @@
+
 "use client";
 
 import { signIn } from "@/lib/auth-client";
-import { Eye, EyeSlash } from "@gravity-ui/icons";
-import { Button, Description, FieldError, Form, Input, InputGroup, Label, TextField } from "@heroui/react";
-import { useState } from "react";
 
+import { Eye, EyeSlash } from "@gravity-ui/icons";
+
+import {
+    Button,
+    Description,
+    FieldError,
+    Form,
+    Input,
+    InputGroup,
+    Label,
+    TextField,
+} from "@heroui/react";
+
+import { useState } from "react";
 
 const SignInPage = () => {
     const [isVisible, setIsVisible] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
 
     const onSubmit = async (e) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget);
-        const data = Object.fromEntries(formData.entries());
-        console.log('form er data', data)
 
-        const { data: resData, error } = await signIn.email({
-            email: data.email,
-            password: data.password,
-            rememberMe: true,
-            callbackURL: '/'
-        })
+        setLoading(true);
+        setMessage("");
 
-        console.log('after submit', resData, error);
+        try {
+            const formData = new FormData(e.currentTarget);
+            const data = Object.fromEntries(formData.entries());
 
+            console.log("Form Data:", data);
+
+            const { data: resData, error } = await signIn.email({
+                email: data.email,
+                password: data.password,
+                rememberMe: true,
+                callbackURL: "/",
+            });
+
+            console.log("After Submit:", resData, error);
+
+            if (error) {
+                setMessage(error.message);
+                return;
+            }
+
+            console.log("Login Successful!");
+
+        } catch (err) {
+            console.error("Login Error:", err);
+            setMessage("Something went wrong!");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
         <div>
-            <h2>Please Sign in</h2>
-            <Form className="flex w-96 flex-col gap-4" onSubmit={onSubmit}>
+            <h2>Please Sign In</h2>
+
+            <Form
+                className="flex w-96 flex-col gap-4"
+                onSubmit={onSubmit}
+            >
+                {/* Email Field */}
                 <TextField
                     isRequired
                     name="email"
                     type="email"
                     validate={(value) => {
-                        if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) {
+                        if (
+                            !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)
+                        ) {
                             return "Please enter a valid email address";
                         }
+
                         return null;
                     }}
                 >
@@ -45,55 +86,70 @@ const SignInPage = () => {
                     <Input placeholder="john@example.com" />
                     <FieldError />
                 </TextField>
-                <TextField 
-                className="w-full max-w-[280px]" 
-                name="password"
-                validate={(value) => {
-                        if (value.length < 8) {
-                            return "Password must be at least 8 characters";
-                        }
-                        if (!/[A-Z]/.test(value)) {
-                            return "Password must contain at least one uppercase letter";
-                        }
-                        if (!/[0-9]/.test(value)) {
-                            return "Password must contain at least one number";
-                        }
-                        return null;
-                    }}
+
+                {/* Password Field */}
+                <TextField
+                    isRequired
+                    name="password"
+                    type="password"
+                    minLength={8}
+                    className="w-full max-w-[280px]"
                 >
                     <Label>Password</Label>
-                    
+
                     <InputGroup>
                         <InputGroup.Input
-                            className="w-full max-w-[280px]"
+                            name="password"
                             type={isVisible ? "text" : "password"}
+                            placeholder="Enter your password"
                         />
+
                         <InputGroup.Suffix className="pe-0">
                             <Button
                                 isIconOnly
-                                aria-label={isVisible ? "Hide password" : "Show password"}
+                                type="button"
+                                aria-label={
+                                    isVisible
+                                        ? "Hide password"
+                                        : "Show password"
+                                }
                                 size="sm"
                                 variant="ghost"
                                 onPress={() => setIsVisible(!isVisible)}
                             >
-                                {isVisible ? <Eye className="size-4" /> : <EyeSlash className="size-4" />}
+                                {isVisible ? (
+                                    <Eye className="size-4" />
+                                ) : (
+                                    <EyeSlash className="size-4" />
+                                )}
                             </Button>
                         </InputGroup.Suffix>
                     </InputGroup>
-                    <Description>Must be at least 8 characters with 1 uppercase and 1 number</Description>
+
+                    <Description>
+                        Enter your account password.
+                    </Description>
+
                     <FieldError />
                 </TextField>
-               
+
+                {/* Buttons */}
                 <div className="flex gap-2">
-                    <Button type="submit">
-                        {/* <Check /> */}
-                        Submit
+                    <Button type="submit" isDisabled={loading}>
+                        {loading ? "Signing In..." : "Submit"}
                     </Button>
+
                     <Button type="reset" variant="secondary">
                         Reset
                     </Button>
                 </div>
             </Form>
+
+            {message && (
+                <p className="mt-3 text-sm text-red-500">
+                    {message}
+                </p>
+            )}
         </div>
     );
 };

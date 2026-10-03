@@ -10,42 +10,54 @@ const db = client.db("better-auth-db");
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const auth = betterAuth({
-    database: mongodbAdapter(db, {
-        client,
-    }),
+  database: mongodbAdapter(db, {
+    client,
+  }),
 
-    emailAndPassword: {
-        enabled: true,
-        requireEmailVerification: true,
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: true,
+  },
+
+
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+
+      console.log("Sending verification email to:", user.email);
+
+      const { data, error } = await resend.emails.send({
+        from: "Acme <onboarding@resend.dev>",
+        to: [user.email],
+        subject: "Verify your email address",
+        html: `
+                <h1>Please Verify your email address</h1>
+                <p>Click <a href="${url}">here</a> to verify your email.</p>
+            `,
+      });
+
+      if (error) {
+        console.error("Resend Email Error:", error);
+        throw error;
+      }
+
+      console.log("Email sent successfully:", data);
     },
 
-    emailVerification: {
-        sendVerificationEmail: async ({ user, url }) => {
-            await resend.emails.send({
-                from: "Acme <onboarding@resend.dev>",
-                to: user.email,
-                subject: "Verify your email address",
-                html: `
-                    <h1>Please Verify your email address</h1>
-                    <p>Click <a href="${url}">here</a> to verify your email.</p>
-                `,
-            });
-        },
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    autoSignInAfterVerification: true,
+    expiresIn: 7 * 24 * 3600,
+  },
 
-        sendOnSignUp: true,
-        autoSignInAfterVerification: true,
-        expiresIn: 7 * 24 * 3600,
+  socialProviders: {
+    google: {
+      clientId: process.env.BETTER_AUTH_GOOGLE_CLIENT_ID,
+      clientSecret: process.env.BETTER_AUTH_GOOGLE_SECRET,
     },
 
-    socialProviders: {
-        google: {
-            clientId: process.env.BETTER_AUTH_GOOGLE_CLIENT_ID,
-            clientSecret: process.env.BETTER_AUTH_GOOGLE_SECRET,
-        },
-
-        github: {
-            clientId: process.env.BETTER_AUTH_GITHUB_CLIENT_ID,
-            clientSecret: process.env.BETTER_AUTH_GITHUB_SECRET,
-        },
+    github: {
+      clientId: process.env.BETTER_AUTH_GITHUB_CLIENT_ID,
+      clientSecret: process.env.BETTER_AUTH_GITHUB_SECRET,
     },
+  },
 });
